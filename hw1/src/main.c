@@ -23,6 +23,7 @@ int main(int argc, char **argv)
     if(global_options & (0x1L << 63)) {
         USAGE(*argv, EXIT_SUCCESS);
     }
+    recode(argv);
 
     return EXIT_SUCCESS;
 }
