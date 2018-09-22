@@ -251,7 +251,8 @@ int recode(char **argv) {
     AUDIO_HEADER h;
     AUDIO_HEADER *hp;
     hp = &h;
-    read_header(hp);
+    if(read_header(hp) == 0)
+        return 0;
 
     unsigned long one = 1;
     char *ap;
@@ -271,15 +272,16 @@ int recode(char **argv) {
             argv++;
             x++;
         }
+        ap--;
+        x--;
 
         if(((hp->data_offset)-24)+x > ANNOTATION_MAX){
             return 0;
         }
-        if((hp->data_offset)-24 != 0){
-            *(ap) = '\n';
-            ap++;
-            x++;
-        }
+
+        *(ap) = '\n';
+        ap++;
+        x++;
 
     }
     int temp = 0;
@@ -291,7 +293,8 @@ int recode(char **argv) {
     x = x - temp;
 
     unsigned int aSize = (hp->data_offset)-24;
-    read_annotation(ap, aSize);
+    if(read_annotation(ap, aSize) == 0)
+        return 0;
     ap = ap - x;
     aSize = aSize + x;
     write_annotation(ap, aSize);
@@ -311,7 +314,8 @@ int recode(char **argv) {
         while(fCount < frames){
             int *fp = (int *) input_frame;
             int channels = hp->channels;
-            read_frame(fp, channels, bytes_per_sample);
+            if(read_frame(fp, channels, bytes_per_sample) == 0)
+                return 0;
             if(fCount % factor == 0){
                 write_frame(fp, channels, bytes_per_sample);
             }
@@ -330,11 +334,13 @@ int recode(char **argv) {
         int *pp = (int *) previous_frame;
         int *ip = (int *) input_frame;
         int *op = (int *) output_frame;
-        read_frame(pp, channels, bytes_per_sample);
+        if(read_frame(pp, channels, bytes_per_sample) == 0)
+            return 0;
         write_frame(pp, channels, bytes_per_sample);
-        while(fCount < frames){
+        while(fCount < frames-1){
             int f = 1;
-            read_frame(ip, channels, bytes_per_sample);
+            if(read_frame(ip, channels, bytes_per_sample) == 0)
+                return 0;
             while(f < factor){
                 if(channels == 1){
                     int v1 = (signed)*(pp);
@@ -384,7 +390,8 @@ int recode(char **argv) {
         int k = global_options & 0xFFFFFFFF;
         mysrand(k);
         while(fCount < frames){
-            read_frame(ip, channels, bytes_per_sample);
+            if(read_frame(ip, channels, bytes_per_sample) == 0)
+                return 0;
             if(channels == 1){
                 int num = myrand32();
                 *(op) = *(ip) ^ num;
@@ -426,6 +433,8 @@ int read_header(AUDIO_HEADER *hp){
     hp->encoding = encoding;
     hp->sample_rate = convInt();
     unsigned int channels = convInt();
+    if(channels < 1 || channels > 2)
+        return 0;
     hp->channels = channels;
     return 1;
 }
@@ -449,10 +458,21 @@ int write_header(AUDIO_HEADER *hp){
     unsigned long mask = (unsigned long) ((1 << 10)-1) << 48;
     unsigned long l = global_options & mask;
     int factor = (l >> 48) + 1;
-    if(global_options & (one << 62))
-        size = size / factor;
-    if(global_options & (one << 61))
-        size = size * factor;
+    if((global_options & (one << 62)) && factor != 1){
+        int frames = size/(hp->channels * (hp->encoding-1));
+        if(frames % 2 == 1)
+            frames++;
+        frames = frames/factor;
+        size = frames * (hp->channels * (hp->encoding-1));
+
+    }
+    if((global_options & (one << 61)) && factor != 1){
+        int frames = size/(hp->channels * (hp->encoding-1));
+        frames--;
+        frames = frames*factor;
+        size = frames * (hp->channels * (hp->encoding-1));
+        size = size + ((hp->channels) * (hp->encoding-1));
+    }
     putchar((size >> 24)&0xff);
     putchar((size >> 16)&0xff);
     putchar((size >> 8)&0xff);
