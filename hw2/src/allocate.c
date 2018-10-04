@@ -10,6 +10,7 @@
 #include "gradedb.h"
 #include "stats.h"
 #include "allocate.h"
+#include "error.h"
 
 Professor *newprofessor()
 {
@@ -66,6 +67,7 @@ Score *newscore()
                 fatal(memerr);
         return(s);
 }
+int sCount = 0;
 
 char *newstring(tp, size)
 char *tp;
@@ -74,17 +76,66 @@ int size;
         char *s, *cp;
         if((s = (char *)malloc(size)) == NULL)
                 fatal(memerr);
+        if((sCount)%32 == 0){
+               sList = sList-sCount;
+               sList = (char **)realloc(sList, sizeof(char*)*(sCount+32));
+               sList = sList + sCount;
+        }
         cp = s;
         while(size-- > 0) *cp++ = *tp++;
+        *(sList) = s;
+        sList++;
+        sCount++;
         return(s);
 }
+
+void free_strings(){
+        sList = sList - sCount;
+        int ct = 0;
+        while(ct != sCount){
+                free(*(sList));
+                sList++;
+                ct++;
+        }
+        sList = sList-sCount;
+        free(sList);
+}
+
+int fCount = 0;
 
 Freqs *newfreqs()
 {
         Freqs *f;
         if((f = (Freqs *)malloc(sizeof(Freqs))) == NULL)
                 fatal(memerr);
+        if((fCount)%32 == 0){
+               fList = fList-fCount;
+               fList = (Freqs **)realloc(fList, sizeof(Freqs*)*(fCount+32));
+               fList = fList + fCount;
+        }
+        *(fList) = f;
+        fList++;
+        fCount++;
         return(f);
+}
+
+void initializeList(){
+        fList = (Freqs **)malloc(sizeof(Freqs*) * 32);
+}
+void initializeSList(){
+        sList = (char **)malloc(sizeof(char*) * 32);
+}
+
+void free_freqs(){
+        fList = fList - fCount;
+        int ct = 0;
+        while(ct != fCount){
+                free(*(fList));
+                fList++;
+                ct++;
+        }
+        fList = fList-fCount;
+        free(fList);
 }
 
 Classstats *newclassstats()

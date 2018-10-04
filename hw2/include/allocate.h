@@ -16,5 +16,11 @@ Classstats *newclassstats();
 Sectionstats *newsectionstats();
 Stats *newstats();
 Ifile *newifile();
+void free_freqs();
+void free_strings();
+void initializeList();
+void initializeSList();
 
-char *memerr = "Unable to allocate memory.";
+char *memerr; //= "Unable to allocate memory.";
+Freqs **fList;
+char **sList;

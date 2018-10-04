@@ -6,10 +6,12 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdlib.h>
 #include "global.h"
 #include "gradedb.h"
 #include "stats.h"
 #include "allocate.h"
+#include "error.h"
 
 Stats *statistics(c)
 Course *c;
@@ -162,7 +164,7 @@ Score *scp;
 Freqs *afp;
 {
         Freqs *fp, *sfp;
-
+        sfp = NULL;
         for(fp = afp; fp != NULL; sfp = fp, fp = fp->next) {
                 if(fp->score == scp->grade) {
                         fp->count++;
@@ -185,6 +187,7 @@ Freqs *afp;
                 } else continue;
         }
         if(sfp == NULL) {       /* insertion into empty list */
+                sfp = newfreqs();
                 sfp->next = NULL;
                 sfp->score = scp->grade;
                 sfp->count = 1;

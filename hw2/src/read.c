@@ -6,11 +6,13 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "global.h"
 #include "gradedb.h"
 #include "stats.h"
 #include "allocate.h"
 #include "read.h"
+#include "error.h"
 
 /*
  * Input file stack
@@ -22,7 +24,7 @@ Ifile *ifile;
  * Token readahead buffer
  */
 
-char tokenbuf[32];
+char tokenbuf[120];
 char *tokenptr = tokenbuf;
 char *tokenend = tokenbuf;
 
@@ -516,16 +518,17 @@ void advancetoken()
 
 void advanceeol()
 {
-        char c;
+        int c;
         if(istoken()) error("(%s:%d) Flushing unread input token.", ifile->name, ifile->line);
         flushtoken();
         gobblewhitespace();
         while((c = getc(ifile->fd)) != EOF) {
-                if(c == '\n') {
+                char c2 = c;
+                if(c2 == '\n') {
                         ungetc(c, ifile->fd);
                         break;
                 }
-                *tokenend++ = c;
+                *tokenend++ = c2;
         }
         if(c == EOF)
                 fatal("(%s:%d) Incomplete line at end of file.", ifile->name, ifile->line);
@@ -602,13 +605,13 @@ void previousfile()
         Ifile *prev;
         if((prev = ifile->prev) == NULL)
                 fatal("(%s:%d) No previous file.", ifile->name, ifile->line);
-        free(ifile);
         fclose(ifile->fd);
+        free(ifile);
         ifile = prev;
         fprintf(stderr, " ]");
 }
 
-void pushfile(e)
+void pushfile()
 {
         Ifile *nfile;
         char *n;

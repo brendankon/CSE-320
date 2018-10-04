@@ -33,3 +33,7 @@ void expecteof();
 void expectnewline();
 void pushfile();
 void previousfile();
+int istoken();
+int tokensize();
+char nextchar();
+int checktoken();
