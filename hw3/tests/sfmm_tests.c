@@ -200,3 +200,38 @@ Test(sf_memsuite_student, realloc_smaller_block_free_block, .init = sf_mem_init,
 //DO NOT DELETE THESE COMMENTS
 //############################################
 
+Test(sf_memsuite_student, malloc_zero_size, .init = sf_mem_init, .fini = sf_mem_fini){
+	void *x = sf_malloc(0);
+	cr_assert(x == NULL, "x is not NULL!");
+}
+
+Test(sf_memsuite_student, malloc_full_page, .init = sf_mem_init, .fini = sf_mem_fini){
+	sf_malloc(1000);
+	sf_malloc(3032);
+	assert_free_block_count(0);
+	char *memEndChar = (char *)sf_mem_end();
+	memEndChar = memEndChar - 8;
+	sf_epilogue *epi;
+	epi = (sf_epilogue *)memEndChar;
+	cr_assert(epi->footer.info.prev_allocated == 1, "Epilogue prev_allocated not equal to 1!");
+}
+
+Test(sf_memsuite_student, malloc_with_splinter, .init = sf_mem_init, .fini = sf_mem_fini){
+	sf_malloc(4016);
+	assert_free_block_count(0);
+}
+
+Test(sf_memsuite_student, realloc_zero, .init = sf_mem_init, .fini = sf_mem_fini){
+	void *p = sf_malloc(64);
+	p = sf_realloc(p, 0);
+	cr_assert_null(p, "Pointer p is not NULL!");
+}
+
+Test(sf_memsuite_student, free_coalesce_adjacent_blocks, .init = sf_mem_init, .fini = sf_mem_fini){
+	void *p1 = sf_malloc(64);
+	void *p2 = sf_malloc(64);
+	sf_free(p1);
+	sf_free(p2);
+	assert_free_block_count(1);
+	assert_free_list_count(PAGE_SZ-48, 1);
+}
